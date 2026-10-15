@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmileCare | Admin Login</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #eaf7ff, #f8fbff);
+      color: #18324b;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 440px;
+      padding: 36px;
+      border-radius: 22px;
+      background: white;
+      box-shadow: 0 15px 45px rgba(24, 74, 110, 0.12);
+    }
+
+    .logo {
+      color: #1688c7;
+      font-size: 30px;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+      font-size: 25px;
+    }
+
+    label {
+      display: block;
+      margin: 18px 0 8px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #cbdbea;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #1688c7;
+      box-shadow: 0 0 0 3px rgba(22, 136, 199, 0.12);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: #1688c7;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0874ae;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    #message {
+      display: none;
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      line-height: 1.5;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 25px;
+      color: #1688c7;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <main class="login-card">
+    <div class="logo">✦ SmileCare</div>
+    <p class="subtitle">Secure clinic administration</p>
+
+```
+<h2>Admin Login</h2>
+<p class="subtitle">
+  Sign in to manage appointment requests.
+</p>
+
+<form id="loginForm">
+  <label for="email">Admin Email</label>
+  <input
+    type="email"
+    id="email"
+    placeholder="Enter admin email"
+    autocomplete="username"
+    required
+  >
+
+  <label for="password">Password</label>
+  <input
+    type="password"
+    id="password"
+    placeholder="Enter password"
+    autocomplete="current-password"
+    required
+  >
+
+  <button type="submit" id="loginButton">
+    Sign In →
+  </button>
+
+  <div id="message" role="status" aria-live="polite"></div>
+</form>
+
+<a class="back-link" href="index.html">
+  ← Back to SmileCare website
+</a>
+```
+
+  </main>
+
+  <script type="module">
+    import { createClient } from
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // Replace this with the exact Project URL from your Supabase dashboard.
+    const SUPABASE_URL =
+      "https://waberzwmmjtyuhhwtktb.supabase.co";
+
+    // Use your sb_publishable_ key only. Never put an sb_secret_ key here.
+    const SUPABASE_PUBLISHABLE_KEY =
+      "sb_publishable_pf_JHZMlPedOUxfxzVH8fw_AWaJcQzH";
+
+    const form = document.getElementById("loginForm");
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("message");
+
+    function showMessage(text, success = false) {
+      message.style.display = "block";
+      message.style.color = success ? "#166534" : "#b91c1c";
+      message.style.background = success ? "#dcfce7" : "#fee2e2";
+      message.textContent = text;
+    }
+
+    let supabase;
+
+    try {
+      if (SUPABASE_PUBLISHABLE_KEY === "PASTE_YOUR_PUBLISHABLE_KEY_HERE") {
+        throw new Error("Add your Supabase publishable key in login.html.");
+      }
+
+      if (!SUPABASE_URL.startsWith("https://")) {
+        throw new Error("The Supabase Project URL is invalid.");
+      }
+
+      const { createClient } = await import(
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+      );
+
+      supabase = createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+      );
+    } catch (error) {
+      showMessage(error.message || "Could not initialize Supabase.");
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!supabase) {
+        showMessage("Supabase is not configured. Check the URL and publishable key.");
+        return;
+      }
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      button.disabled = true;
+      button.textContent = "Signing in...";
+      message.style.display = "none";
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) {
+          showMessage("Login failed: " + error.message);
+          return;
+        }
+
+        if (data.session) {
+  showMessage("Login successful! Opening dashboard...", true);
+
+  setTimeout(() => {
+    window.location.href = "admin.html";
+  }, 1000);
+} else {
+          showMessage("Login completed, but no session was returned.");
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+
+        showMessage(
+          "Connection error. Check your internet, Supabase Project URL, and project status."
+        );
+      } finally {
+        button.disabled = false;
+        button.textContent = "Sign In →";
+      }
+    });
+  </script>
+
+</body>
+</html>

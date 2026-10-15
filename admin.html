@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmileCare | Admin Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            background: #f4f8fb;
+            color: #183449;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            color: #1683bd;
+        }
+
+        .subtitle {
+            color: #6c8293;
+            margin-top: 8px;
+        }
+
+        .summary {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px #17384d0d;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 5px 20px #17384d0d;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #edf1f5;
+        }
+
+        th {
+            background: #eaf5fb;
+        }
+
+        .status {
+            font-weight: bold;
+            text-transform: capitalize;
+        }
+
+        button {
+            padding: 10px 13px;
+            border: 0;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 3px;
+        }
+
+        .accept {
+            background: #d9f7e8;
+            color: #087747;
+        }
+
+        .reject {
+            background: #ffe5e5;
+            color: #b42323;
+        }
+
+        .refresh {
+            background: #1683bd;
+            color: white;
+        }
+
+        .whatsapp {
+            background: #e0f8e9;
+            color: #087747;
+            text-decoration: none;
+            display: inline-block;
+            padding: 10px;
+            border-radius: 7px;
+            font-size: 13px;
+        }
+
+        #notice {
+            margin: 15px 0;
+            color: #a32626;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h1>✦ SmileCare Admin</h1>
+        <p class="subtitle">Dental Clinic Appointment Management</p>
+    </div>
+
+    <button class="refresh" onclick="loadAppointments()">
+        Refresh Appointments ↻
+    </button>
+</header>
+
+<div class="summary">
+    <strong>Total appointments:</strong>
+    <span id="total">0</span>
+    &nbsp; | &nbsp;
+    <strong>Pending:</strong>
+    <span id="pending">0</span>
+</div>
+
+<p id="notice" role="status"></p>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Patient</th>
+                <th>Phone</th>
+                <th>Service</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody id="appointments">
+            <tr>
+                <td colspan="7">Loading appointments...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const SUPABASE_URL =
+        "https://waberzwmmjtyuhhwtktb.supabase.co";
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_pf_JHZMlPedOUxfxzVH8fw_AWaJcQzH";
+
+    const client = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY
+    );
+
+    async function loadAppointments() {
+        const notice = document.getElementById("notice");
+        const table = document.getElementById("appointments");
+
+        notice.textContent = "";
+
+        const { data, error } = await client
+            .from("appointments")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            notice.textContent =
+                "Could not load appointments. Check database permissions.";
+            console.error(error);
+
+            table.innerHTML =
+                '<tr><td colspan="7">Appointments could not be loaded.</td></tr>';
+            return;
+        }
+
+        document.getElementById("total").textContent = data.length;
+
+        document.getElementById("pending").textContent =
+            data.filter(a => a.status === "pending").length;
+
+        if (data.length === 0) {
+            table.innerHTML =
+                '<tr><td colspan="7">No appointments found.</td></tr>';
+            return;
+        }
+
+        table.innerHTML = data.map(a => {
+            const phone = String(a.phone || "").replace(/\D/g, "");
+            const message = encodeURIComponent(
+                `Hello ${a.patient_name || "there"}, this is SmileCare Dental Clinic. We are contacting you about your appointment request for ${a.appointment_date} at ${a.appointment_time}. Please reply so we can confirm the details.`
+            );
+
+            const whatsapp = phone
+                ? `<a class="whatsapp"
+                     href="https://wa.me/${phone}?text=${message}"
+                     target="_blank"
+                     rel="noopener noreferrer">WhatsApp</a>`
+                : "";
+
+            return `
+                <tr>
+                    <td>${escapeHTML(a.patient_name)}</td>
+                    <td>${escapeHTML(a.phone)}</td>
+                    <td>${escapeHTML(a.service)}</td>
+                    <td>${escapeHTML(a.appointment_date)}</td>
+                    <td>${escapeHTML(a.appointment_time)}</td>
+                    <td class="status">${escapeHTML(a.status)}</td>
+                    <td>
+                        ${a.status === "pending" ? `
+                            <button class="accept"
+                                onclick="changeStatus('${a.id}', 'accepted')">
+                                Accept
+                            </button>
+                            <button class="reject"
+                                onclick="changeStatus('${a.id}', 'rejected')">
+                                Reject
+                            </button>
+                        ` : ""}
+                        ${whatsapp}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[char]);
+    }
+
+    async function changeStatus(id, status) {
+        const notice = document.getElementById("notice");
+
+        const { error } = await client
+            .from("appointments")
+            .update({ status })
+            .eq("id", id);
+
+        if (error) {
+            notice.textContent =
+                "Status could not be updated. Check database permissions.";
+            console.error(error);
+            return;
+        }
+
+        notice.style.color = "#087747";
+        notice.textContent = `Appointment marked ${status}.`;
+
+        await loadAppointments();
+    }
+
+    async function startAdminDashboard() {
+    const { data, error } = await client.auth.getSession();
+
+    if (error || !data.session) {
+        window.location.replace("login.html");
+        return;
+    }
+
+    await loadAppointments();
+}
+
+startAdminDashboard();
+</script>
+
+</body>
+</html>
